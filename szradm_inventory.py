@@ -2,6 +2,9 @@
 
 """Convert szradm output into ansible inventory.
 
+Usage:
+  szradm_inventory.py --list
+
 Supported environment variables:
 
 - MERGE_INVENTORY_JSON_FILE
@@ -15,6 +18,8 @@ Supported environment variables:
 import json
 import subprocess
 import os
+
+import sys
 
 
 def is_this_machine_the_one_owning_ip(ip_addr):
@@ -36,12 +41,27 @@ def get_szradm_output():
     return json.loads(output)
 
 
+def substitute_environment_variables(obj):
+    if isinstance(obj, list):
+        return map(substitute_environment_variables, obj)
+    elif isinstance(obj, dict):
+        return {k: substitute_environment_variables(v) for k, v in obj.iteritems()}
+    elif not isinstance(obj, basestring):
+        return obj
+    if obj.startswith('${') and obj.endswith('}'):
+        envvar_name = obj[2:-1]
+        return os.environ[envvar_name]
+    return obj
+
+
 def get_merge_inventory():
     envvar = 'MERGE_INVENTORY_JSON_FILE'
-    if envvar in os.environ:
-        with open(os.environ[envvar]) as f:
-            return json.load(f)
-    return {}
+    if envvar not in os.environ:
+        return {}
+    with open(os.environ[envvar]) as f:
+        inventory = json.load(f)
+    inventory = substitute_environment_variables(inventory)
+    return inventory
 
 
 # http://stackoverflow.com/questions/7204805/dictionaries-of-dictionaries-merge
@@ -120,4 +140,7 @@ def main():
 
 
 if __name__ == '__main__':
+    if '--list' not in sys.argv:
+        print __doc__
+        sys.exit(1)
     main()
