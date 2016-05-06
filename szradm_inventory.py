@@ -95,7 +95,7 @@ def convert_szradm_output_into_inventory(output):
         hosts = role['hosts']
         for host in hosts:
             private_ip = host['internal-ip']
-            inventory_hostname = '%s:%s' % (ansible_role_name, private_ip)
+            inventory_hostname = '%s_%s' % (ansible_role_name, private_ip)
             inventory.setdefault(ansible_role_name, []).append(inventory_hostname)
 
             this_host_vars = meta_hostvars[inventory_hostname] = {
