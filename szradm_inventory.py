@@ -59,14 +59,16 @@ def substitute_environment_variables(obj):
     return obj
 
 
-def get_merge_inventory():
-    envvar = 'MERGE_INVENTORY_JSON_FILE'
+def get_merge_inventories():
+    envvar = 'MERGE_INVENTORY_JSON_FILES'
     if envvar not in os.environ:
-        return {}
-    with open(os.environ[envvar]) as f:
-        inventory = json.load(f)
-    inventory = substitute_environment_variables(inventory)
-    return inventory
+        raise StopIteration
+    filenames = os.environ[envvar].split(',')
+    for filename in filenames:
+        with open(filename) as f:
+            inventory = json.load(f)
+        inventory = substitute_environment_variables(inventory)
+        yield inventory
 
 
 # http://stackoverflow.com/questions/7204805/dictionaries-of-dictionaries-merge
@@ -136,10 +138,9 @@ def convert_szradm_output_into_inventory(output):
 def main():
     roles = get_szradm_output()
 
-    generated_inventory = convert_szradm_output_into_inventory(roles)
-    merge_inventory = get_merge_inventory()
-
-    inventory = merge_dicts(generated_inventory, merge_inventory)
+    inventory = convert_szradm_output_into_inventory(roles)
+    for merge_inventory in get_merge_inventories():
+        inventory = merge_dicts(inventory, merge_inventory)
 
     print json.dumps(inventory, indent=4)
 
