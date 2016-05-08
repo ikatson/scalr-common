@@ -50,7 +50,12 @@ def substitute_environment_variables(obj):
         return obj
     if obj.startswith('${') and obj.endswith('}'):
         envvar_name = obj[2:-1]
-        return os.environ[envvar_name]
+        try:
+            default = envvar_name.split(':-')[1]
+        except IndexError:
+            return os.environ[envvar_name]
+        else:
+            return os.environ.get(envvar_name, default)
     return obj
 
 
